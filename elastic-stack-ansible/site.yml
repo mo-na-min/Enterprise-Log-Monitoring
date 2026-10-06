@@ -1,0 +1,16 @@
+---
+- name: Deploy Complete Elastic Stach (Ubuntu Servers)
+  hosts: ubuntu_servers
+  become: true
+  roles:
+    - elasticsearch
+    - logstash
+    - kibana
+
+- name: Deploy Complete Elastic Stack (CentOS Servers)
+  hosts: centos_servers
+  become: true
+  roles:
+    - elasticsearch
+    - logstash
+    - kibana

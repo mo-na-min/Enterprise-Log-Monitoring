@@ -1,0 +1,73 @@
+---
+# Debian / Ubuntu Tasks
+- name: Clean APT cache to free disk space (Debian/Ubuntu)
+  ansible.builtin.apt:
+    clean: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Create Keyrings directory (Ubuntu)
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add Elastic GPG key (Ubuntu)
+  ansible.builtin.get_url:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    dest: /etc/apt/keyrings/elasticsearch.asc
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add Elastic APT repository (Debian/Ubuntu)
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/elasticsearch.asc] https://artifacts.elastic.co/packages/8.x/apt stable main"
+    state: present
+    filename: elastic-8.x
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Kibana (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: kibana
+    state: present
+    update_cache: yes
+    lock_timeout: 180
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: ansible_facts['os_family'] == "Debian"
+
+# RedHat / CentOS Tasks
+- name: Add Elastic YUM Repository (RedHat/CentOS)
+  ansible.builtin.yum_repository:
+    name: elastic-8.x
+    description: Elastic repository for 8.x packages
+    baseurl: https://artifacts.elastic.co/packages/8.x/yum
+    gpgcheck: yes
+    gpgkey: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    enabled: yes
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install Kibana (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: kibana
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+# Common Configurations
+- name: Configure Kibana server host
+  ansible.builtin.lineinfile:
+    path: /etc/kibana/kibana.yml
+    regexp: '^#?server.host:'
+    line: 'server.host: "0.0.0.0"'
+
+- name: Configure Kibana localhost Elasticsearch URL
+  ansible.builtin.lineinfile:
+    path: /etc/kibana/kibana.yml
+    regexp: '^#?elasticsearch.hosts:'
+    line: 'elasticsearch.hosts: ["http://localhost:9200"]'
+
+- name: Start and enable Kibana service
+  ansible.builtin.systemd:
+    name: kibana
+    state: started
+    enabled: yes
